@@ -14,3 +14,14 @@ To do:
 3. Add a legend for US map colors 
 4. Look at other assignment requirements (storyboard, write up, etc.)
 
+Update 11.24.2025 12:14 AM
+
+Notes:
+1. Added the filtering by selecting bar in top 10 occupations
+2. Added a comparative mode to view two different jobs salaries/hours in given state
+3. Changed second plot when occupation is selected to a violin plots
+
+To do:
+1. Need to change layout of boxes/legends to be better alligned: especially for comparative violin plots (overlapping legend)
+2. Add a legend for US Map colors
+3. Look at other assignment requirements (storyboard, write up, etc.)
