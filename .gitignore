@@ -1,2 +1,4 @@
 # Ignore all data files
-data/
+data/usa_00003.csv
+data/usa_00003_unclean.csv
+data/usa_00003_23.csv
