@@ -1,0 +1,31 @@
+body {
+  font-family: sans-serif;
+  background: #fafafa;
+  margin: 0 auto;
+  text-align: center;
+}
+
+#controls {
+  position: relative;
+  z-index: 10; /* ensures dropdown is above map */
+}
+
+#map {
+  position: relative;
+  z-index: 1;
+}
+
+select {
+  padding: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.tooltip {
+  position: absolute;
+  background: white;
+  padding: 8px;
+  border: 1px solid #ccc;
+  pointer-events: none;
+  font-size: 12px;
+}
