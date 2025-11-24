@@ -38,5 +38,5 @@ print("After removing non-degree rows:", len(df))
 # df = df[keep_cols]
 
 # Save cleaned output
-df.to_csv("data/usa_00003_clean.csv", index=False)
-print("Saved cleaned dataset to data/usa_00003_clean.csv")
+df.to_csv("data/usa_00003.csv", index=False)
+print("Saved cleaned dataset to data/usa_00003.csv")

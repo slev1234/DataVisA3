@@ -3,22 +3,68 @@ body {
   background: #fafafa;
   margin: 0 auto;
   text-align: center;
+  padding: 20px;
 }
 
 #controls {
   position: relative;
-  z-index: 10; /* ensures dropdown is above map */
+  z-index: 10;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+#controls label {
+  font-weight: bold;
+}
+
+#container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 #map {
   position: relative;
   z-index: 1;
+  flex-shrink: 0;
+}
+
+#details {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+#salary-chart,
+#bottom-chart {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#salary-chart h3,
+#bottom-chart h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #333;
 }
 
 select {
   padding: 8px;
   font-size: 16px;
   cursor: pointer;
+  min-width: 200px;
 }
 
 .tooltip {
@@ -27,5 +73,18 @@ select {
   padding: 8px;
   border: 1px solid #ccc;
   pointer-events: none;
+  font-size: 12px;
+  z-index: 1000;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: orange;
+}
+
+.axis-label {
   font-size: 12px;
 }

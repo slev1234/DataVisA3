@@ -14,10 +14,22 @@
     <div id="controls">
       <label for="major-select">Select a Major:</label>
       <select id="major-select"></select>
+      
+      <label for="occupation-select">Select an Occupation:</label>
+      <select id="occupation-select"></select>
     </div>
 
-    <div id="map"></div>
+    <div id="container">
+      <div id="map"></div>
+      <div id="details">
+        <div id="salary-chart"></div>
+        <div id="bottom-chart"></div>
+      </div>
+    </div>
 
+    <!-- Import occupations mapping first -->
+    <script src="occupations.js"></script>
+    <!-- Then import main script -->
     <script src="script.js"></script>
   </body>
 </html>
