@@ -204,6 +204,7 @@ function populateMajorDropdown() {
     // Clear the detail panels when major changes
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
+    d3.select("#last-chart").html("");
     // NEW: major-only violin across all states (when no occupation selected)
   if (currentSelectedOccupation === "all") {
     let majorData = allData;
@@ -256,6 +257,7 @@ function populateOccupationDropdown() {
     updateMap(currentSelectedMajor, currentSelectedOccupation);
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
+    d3.select("#last-chart").html("");
   }
 });
 
@@ -302,6 +304,7 @@ d3.select("#compare-toggle").on("click", function () {
 
   d3.select("#salary-chart").html("");
   d3.select("#bottom-chart").html("");
+  d3.select("#last-chart").html("");
 });
 
 
@@ -319,6 +322,7 @@ d3.select("#occupation-select-2").on("change", function () {
   } else {
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
+    d3.select("#last-chart").html("");
   }
 });
 
@@ -601,10 +605,6 @@ function updateMap(selectedMajor, selectedOccupation) {
   drawLegend(colorScale, inCompare);
 }
 
-
-
-
-
 function updateDetailPanels(
   stateFips,
   stateName,
@@ -639,14 +639,16 @@ function updateDetailPanels(
 
   // Update salary chart
   updateSalaryChart(stateData, stateName, majorText, occupationText);
+  updateHoursChart(stateData, stateName, majorText, occupationText);
 
   // Update bottom chart based on whether occupation is selected
   if (selectedOccupation === "all") {
     // Show occupation bar chart when no specific occupation is selected
     updateOccupationChart(stateData, stateName, majorText, "All Occupations");
-  } else {
-    // Show hours worked chart when a specific occupation is selected
-    updateHoursChart(stateData, stateName, majorText, occupationText);
+  }
+   if (selectedOccupation != "all") {
+    // Show occupation bar chart when no specific occupation is selected
+    d3.select("#bottom-chart").html("");
   }
 }
 
@@ -856,6 +858,7 @@ function updateOccupationChart(data, stateName, majorText) {
   currentSelectedOccupation = d.code; // actually change filter!
   updateMap(currentSelectedMajor, currentSelectedOccupation);
   updateHoursChart(data.filter(dd => dd.OCC === d.code), stateName, majorText, d.name);
+  d3.select("#bottom-chart").html("");
 })
 
     .on("mouseover", function (event, d) {
@@ -1160,7 +1163,7 @@ function updateHoursChart(data, stateName, majorText, occupationText) {
 */
 //violin plot hours chart
 function updateHoursChart(data, stateName, majorText, occupationText) {
-  const container = d3.select("#bottom-chart");
+  const container = d3.select("#last-chart");
   container.html(""); // Clear previous content
 
   // Filter valid hours
@@ -1399,7 +1402,7 @@ function updateCompareSalaryChart(dataA, dataB, stateName, majorText, occA, occB
 }
 
 function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occB) {
-  const container = d3.select("#bottom-chart");
+  const container = d3.select("#last-chart");
   container.html(""); // Clear previous content
 
   // Prepare data
