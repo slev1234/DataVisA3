@@ -19,7 +19,7 @@ body {
 #map-legend {
   position: absolute;
   top: 75px;       /* distance from top of the page */
-  left: 850px;     /* distance from left; tweak until it sits under the occupation select */
+  left: 650px;     /* distance from left; tweak until it sits under the occupation select */
 }
 
 
@@ -48,6 +48,11 @@ body {
   gap: 30px;
   min-width: 400px;
   max-width: 500px;
+}
+
+#last-chart {
+  flex: 1;
+  min-width: 400px;
 }
 
 #salary-chart,
