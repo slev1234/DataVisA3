@@ -14,29 +14,6 @@ df = df[df["DEGFIELD"] != 0]
 
 print("After removing non-degree rows:", len(df))
 
-# # (Optional but recommended)
-# # 2. Keep only employed at work (EMPSTAT = 1)
-# if "EMPSTAT" in df.columns:
-#     df = df[df["EMPSTAT"] == 1]
-#     print("After filtering employed-at-work:", len(df))
-
-# # 3. Must have valid workplace state (PWSTATE2 != 0 and not missing)
-# if "PWSTATE2" in df.columns:
-#     df["PWSTATE2"] = pd.to_numeric(df["PWSTATE2"], errors="coerce")
-#     df = df[df["PWSTATE2"].notna() & (df["PWSTATE2"] != 0)]
-#     print("After keeping valid PWSTATE2:", len(df))
-
-# # Optional cleanup: keep only needed columns for the visualization
-# keep_cols = [
-#     "DEGFIELD",
-#     "DEGFIELDD",
-#     "EMPSTAT",
-#     "PWSTATE2",
-#     "PERWT"
-# ]
-
-# df = df[keep_cols]
-
 # Save cleaned output
 df.to_csv("data/usa_00003.csv", index=False)
 print("Saved cleaned dataset to data/usa_00003.csv")
