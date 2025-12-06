@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the original CSV
-df = pd.read_csv("data/usa_00003_23.csv", low_memory=False)
+df = pd.read_csv("/Users/stephenlevitt/DataVisA3/data/usa_00003_23trimmed.csv", low_memory=False)
 
 print("Original rows:", len(df))
 

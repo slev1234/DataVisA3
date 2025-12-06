@@ -1,4 +1,5 @@
 # Ignore all data files
-data/usa_00003.csv
 data/usa_00003_unclean.csv
 data/usa_00003_23.csv
+/Users/stephenlevitt/DataVisA3/data/usa_00003_23trimmed.csv
+

@@ -381,9 +381,7 @@ function drawLegend(colorScale, inCompare) {
 }
 
 function updateMap(selectedMajor, selectedOccupation) {
-  // -----------------------------
   // PREPARE & FILTER DATA
-  // -----------------------------
   let filteredData = allData;
 
   // Filter by selected major
@@ -401,9 +399,8 @@ function updateMap(selectedMajor, selectedOccupation) {
 
   let stateValues; // [fips, numericValue]
 
-  // -----------------------------
+
   // COMPARE MODE (Job A vs Job B)
-  // -----------------------------
   if (inCompare) {
     const jobA = d3.rollups(
       filteredData.filter(d => d.OCC === currentSelectedOccupation),
@@ -430,9 +427,7 @@ function updateMap(selectedMajor, selectedOccupation) {
     });
 
   } 
-  // -----------------------------
   // NORMAL MODE (Single occupation)
-  // -----------------------------
   else {
     if (selectedOccupation !== "all") {
       filteredData = filteredData.filter(d => d.OCC === selectedOccupation);
@@ -447,15 +442,11 @@ function updateMap(selectedMajor, selectedOccupation) {
     stateValues = byState.map(([fips, v]) => [fips, +v]);
   }
 
-  // -----------------------------
   // PREP MAP VALUES
-  // -----------------------------
   const stateMap = new Map(stateValues);
   const extent = d3.extent(stateValues, d => d[1]);
 
-  // -----------------------------
   // COLOR SCALES
-  // -----------------------------
   let colorScale;
 
   if (inCompare) {
@@ -482,9 +473,7 @@ function updateMap(selectedMajor, selectedOccupation) {
       .domain([0, max]);
   }
 
-  // -----------------------------
   // DRAW STATES
-  // -----------------------------
   const states = topojson.feature(usTopoJSON, usTopoJSON.objects.states);
 
   svg.selectAll("path").remove();
@@ -504,9 +493,7 @@ function updateMap(selectedMajor, selectedOccupation) {
     })
     .style("cursor", "pointer")
 
-    // -----------------------------
     // HOVER
-    // -----------------------------
     .on("mouseover", function (event, d) {
       const fips = d.id.toString().padStart(2, "0");
       const val = stateMap.get(fips) || 0;
@@ -562,9 +549,7 @@ function updateMap(selectedMajor, selectedOccupation) {
       tooltip.style("visibility", "hidden");
     })
 
-    // -----------------------------
     // CLICK
-    // -----------------------------
     .on("click", function (event, d) {
       const fips = d.id.toString().padStart(2, "0");
       const stateName = stateNames[fips] || "Unknown";
@@ -599,9 +584,7 @@ function updateMap(selectedMajor, selectedOccupation) {
         .style("opacity", 1);
     });
 
-  // -----------------------------
   // LEGEND
-  // -----------------------------
   drawLegend(colorScale, inCompare);
 }
 
