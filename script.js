@@ -7,6 +7,18 @@ const svg = d3
   .attr("width", width)
   .attr("height", height);
 
+// Legend SVG just under occupation select
+const legendSvg = d3
+  .select("#map-legend")
+  .append("svg")
+  .attr("width", 260)
+  .attr("height", 60);
+
+const legendG = legendSvg.append("g")
+  .attr("id", "legend")
+  .attr("transform", "translate(20, 20)");
+
+
 const tooltip = d3
   .select("body")
   .append("div")
@@ -160,6 +172,14 @@ Promise.all([
 
   // Draw initial map (all majors, all occupations)
   updateMap("all", "all");
+  // Initial bottom chart: all majors, all states
+updateHoursChart(
+  allData,                            // all rows
+  "United States",                    // stateName
+  "All Majors",                       // majorText
+  "All Occupations"                  // occupationText
+);
+
 });
 
 function populateMajorDropdown() {
@@ -184,7 +204,25 @@ function populateMajorDropdown() {
     // Clear the detail panels when major changes
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
-  });
+    // NEW: major-only violin across all states (when no occupation selected)
+  if (currentSelectedOccupation === "all") {
+    let majorData = allData;
+    if (currentSelectedMajor !== "all") {
+      majorData = majorData.filter(d => d.DEGFIELD === currentSelectedMajor);
+    }
+    const majorText =
+      currentSelectedMajor === "all"
+        ? "All Majors"
+        : majorNames[currentSelectedMajor] || `Major ${currentSelectedMajor}`;
+
+    updateHoursChart(
+      majorData,
+      "United States",
+      majorText,
+      "All Occupations"
+    );
+  }
+});
 }
 function populateOccupationDropdown() {
   const dropdown = d3.select("#occupation-select");
@@ -206,19 +244,21 @@ function populateOccupationDropdown() {
   // Add event listener for dropdown changes
   d3.select("#occupation-select").on("change", function () {
   currentSelectedOccupation = this.value;
-  if (
-    compareMode &&
-    currentSelectedOccupation2 &&
-    currentSelectedOccupation !== "all" &&
-    currentSelectedOccupation2 !== "all"
-  ) {
-    updateCompareCharts(currentSelectedMajor, currentSelectedOccupation, currentSelectedOccupation2);
+
+  if (compareMode &&
+      currentSelectedOccupation2 &&
+      currentSelectedOccupation !== "all" &&
+      currentSelectedOccupation2 !== "all") {
+
+    // REDRAW MAP IN COMPARE MODE
+    updateMap(currentSelectedMajor, currentSelectedOccupation);
   } else {
     updateMap(currentSelectedMajor, currentSelectedOccupation);
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
   }
 });
+
 }
 function populateOccupationDropdown2() {
   const dropdown2 = d3.select("#occupation-select-2");
@@ -245,154 +285,325 @@ let currentSelectedOccupation2 = null;
 
 d3.select("#compare-toggle").on("click", function () {
   compareMode = !compareMode;
-  d3.select("#occupation-select-2").style("display", compareMode ? "inline" : "none");
-  d3.select("#occ2-label").style("display", compareMode ? "inline" : "none");
+
+  d3.select("#occupation-select-2")
+    .style("display", compareMode ? "inline" : "none");
+  d3.select("#occ2-label")
+    .style("display", compareMode ? "inline" : "none");
+
   if (compareMode) {
     populateOccupationDropdown2();
+  } else {
+    currentSelectedOccupation2 = null;
   }
-  // Clear charts, as mode changes
+
+  // NEW: always redraw map when mode changes
+  updateMap(currentSelectedMajor, currentSelectedOccupation);
+
   d3.select("#salary-chart").html("");
   d3.select("#bottom-chart").html("");
 });
 
+
 // Listener for second occupation dropdown
 d3.select("#occupation-select-2").on("change", function () {
   currentSelectedOccupation2 = this.value;
-  if (
-    compareMode &&
-    currentSelectedOccupation &&
-    currentSelectedOccupation !== "all" &&
-    currentSelectedOccupation2 !== "all"
-  ) {
-    updateCompareCharts(currentSelectedMajor, currentSelectedOccupation, currentSelectedOccupation2);
+
+  if (compareMode &&
+      currentSelectedOccupation &&
+      currentSelectedOccupation !== "all" &&
+      currentSelectedOccupation2 !== "all") {
+
+    // REDRAW MAP IN COMPARE MODE
+    updateMap(currentSelectedMajor, currentSelectedOccupation);
   } else {
     d3.select("#salary-chart").html("");
     d3.select("#bottom-chart").html("");
   }
 });
 
+function drawLegend(colorScale, inCompare) {
+  const legendWidth = 200;
+  const legendHeight = 12;
+
+  // Clear previous legend content
+  legendG.selectAll("*").remove();
+
+  const n = 80;
+  const data = d3.range(n);
+
+  const domain = colorScale.domain();
+  const x = inCompare
+    ? d3.scaleLinear().domain([domain[0], domain[2]]).range([0, legendWidth])
+    : d3.scaleLinear().domain(d3.extent(domain)).range([0, legendWidth]);
+
+  // Gradient rectangles
+  legendG.selectAll("rect")
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("x", d => (d / (n - 1)) * legendWidth)
+    .attr("y", 0)
+    .attr("width", legendWidth / (n - 1))
+    .attr("height", legendHeight)
+    .attr("fill", d => {
+      const t = d / (n - 1);
+      const value = x.invert(t * legendWidth);
+      return colorScale(value);
+    });
+
+  // Axis
+  const axis = d3.axisBottom(x)
+    .ticks(inCompare ? 3 : 4)
+    .tickFormat(d3.format(".2s"));
+
+  legendG.append("g")
+    .attr("transform", `translate(0, ${legendHeight})`)
+    .call(axis)
+    .selectAll("text")
+    .style("font-size", "8px");
+
+  // Label text
+  const label = inCompare
+    ? "Occ. A  ← fewer | equal | more →  Occ. B"
+    : "Lighter = fewer grads, darker = more grads";
+
+  legendG.append("text")
+    .attr("x", legendWidth / 2)
+    .attr("y", legendHeight - 24)
+    .attr("text-anchor", "middle")
+    .style("font-size", "11px")
+    .text(label);
+}
 
 function updateMap(selectedMajor, selectedOccupation) {
-  // Filter data by selected major and occupation
+  // -----------------------------
+  // PREPARE & FILTER DATA
+  // -----------------------------
   let filteredData = allData;
 
+  // Filter by selected major
   if (selectedMajor !== "all") {
-    filteredData = filteredData.filter((d) => d.DEGFIELD === selectedMajor);
+    filteredData = filteredData.filter(d => d.DEGFIELD === selectedMajor);
   }
 
-  if (selectedOccupation !== "all") {
-    filteredData = filteredData.filter((d) => d.OCC === selectedOccupation);
+  // Are we comparing two occupations?
+  const inCompare =
+    compareMode &&
+    currentSelectedOccupation &&
+    currentSelectedOccupation2 &&
+    currentSelectedOccupation !== "all" &&
+    currentSelectedOccupation2 !== "all";
+
+  let stateValues; // [fips, numericValue]
+
+  // -----------------------------
+  // COMPARE MODE (Job A vs Job B)
+  // -----------------------------
+  if (inCompare) {
+    const jobA = d3.rollups(
+      filteredData.filter(d => d.OCC === currentSelectedOccupation),
+      v => d3.sum(v, d => +d.PERWT),  // force numeric
+      d => d.PWSTATE2.padStart(2, "0")
+    );
+
+    const jobB = d3.rollups(
+      filteredData.filter(d => d.OCC === currentSelectedOccupation2),
+      v => d3.sum(v, d => +d.PERWT),
+      d => d.PWSTATE2.padStart(2, "0")
+    );
+
+    const jobAMap = new Map(jobA);
+    const jobBMap = new Map(jobB);
+
+    const statesSet = new Set([...jobAMap.keys(), ...jobBMap.keys()]);
+
+    // Difference = A – B
+    stateValues = Array.from(statesSet, fips => {
+      const a = +jobAMap.get(fips) || 0;
+      const b = +jobBMap.get(fips) || 0;
+      return [fips, a - b];
+    });
+
+  } 
+  // -----------------------------
+  // NORMAL MODE (Single occupation)
+  // -----------------------------
+  else {
+    if (selectedOccupation !== "all") {
+      filteredData = filteredData.filter(d => d.OCC === selectedOccupation);
+    }
+
+    const byState = d3.rollups(
+      filteredData,
+      v => d3.sum(v, d => +d.PERWT),
+      d => d.PWSTATE2.padStart(2, "0")
+    );
+
+    stateValues = byState.map(([fips, v]) => [fips, +v]);
   }
 
-  console.log("Filtered data length:", filteredData.length);
+  // -----------------------------
+  // PREP MAP VALUES
+  // -----------------------------
+  const stateMap = new Map(stateValues);
+  const extent = d3.extent(stateValues, d => d[1]);
 
-  // Aggregate by state
-  const byState = d3.rollups(
-    filteredData,
-    (v) => d3.sum(v, (d) => d.PERWT),
-    (d) => d.PWSTATE2.padStart(2, "0")
-  );
+  // -----------------------------
+  // COLOR SCALES
+  // -----------------------------
+  let colorScale;
 
-  const stateMap = new Map(byState);
-  const max = d3.max(byState, (d) => d[1]) || 1;
+  if (inCompare) {
+    const maxAbs = Math.max(Math.abs(extent[0] || 0), Math.abs(extent[1] || 0), 1);
 
-  const color = d3
-    .scaleSequential()
-    .domain([0, max])
-    .interpolator(d3.interpolateBlues);
+    const green = d3.rgb("#2ca25f");
+    const white = d3.rgb("#ffffff");
+    const orange = d3.rgb("#f16913");
 
-  // Get states features
+    const customInterp = function(t) {
+      if (t < 0.5) {
+        return d3.interpolateRgb(green, white)(t / 0.5);
+      } else {
+        return d3.interpolateRgb(white, orange)((t - 0.5) / 0.5);
+      }
+    };
+
+    colorScale = d3.scaleDiverging(customInterp)
+      .domain([-maxAbs, 0, maxAbs]);  // negative = orange, positive = green
+
+  } else {
+    const max = extent[1] || 1;
+    colorScale = d3.scaleSequential(d3.interpolateBlues)
+      .domain([0, max]);
+  }
+
+  // -----------------------------
+  // DRAW STATES
+  // -----------------------------
   const states = topojson.feature(usTopoJSON, usTopoJSON.objects.states);
 
-  // Remove old paths
   svg.selectAll("path").remove();
 
-  // Draw updated states
-  svg
-    .selectAll("path")
+  svg.selectAll("path")
     .data(states.features)
     .enter()
     .append("path")
     .attr("d", path)
     .attr("stroke", "#333")
     .attr("stroke-width", 0.5)
-    .attr("fill", (d) => {
+    .attr("fill", d => {
       const fips = d.id.toString().padStart(2, "0");
-      const val = stateMap.get(fips) || 0;
-      return val > 0 ? color(val) : "#eee";
+      const val = stateMap.get(fips);
+      if (val == null) return "#eee";
+      return colorScale(val);
     })
     .style("cursor", "pointer")
+
+    // -----------------------------
+    // HOVER
+    // -----------------------------
     .on("mouseover", function (event, d) {
       const fips = d.id.toString().padStart(2, "0");
       const val = stateMap.get(fips) || 0;
       const stateName = stateNames[fips] || "Unknown";
 
-      // Highlight the state
-      d3.select(this).attr("stroke", "#000").attr("stroke-width", 2);
+      d3.select(this)
+        .attr("stroke", "#000")
+        .attr("stroke-width", 2);
 
-      // Show tooltip
       const majorText =
         selectedMajor === "all"
           ? "All Majors"
           : majorNames[selectedMajor] || `Major ${selectedMajor}`;
 
-      const occupationText =
-        selectedOccupation === "all"
-          ? "All Occupations"
-          : occupationNames[selectedOccupation] ||
-            `Occupation ${selectedOccupation}`;
+      let occupationText, valueText;
 
-      tooltip.style("visibility", "visible").html(`
+      if (inCompare) {
+        const jobAName = occupationNames[currentSelectedOccupation] || "Job A";
+        const jobBName = occupationNames[currentSelectedOccupation2] || "Job B";
+
+        occupationText = `${jobAName} vs ${jobBName}`;
+        valueText = `Difference (Job A – Job B): ${val.toLocaleString()}`;
+      } else {
+        occupationText =
+          selectedOccupation === "all"
+            ? "All Occupations"
+            : occupationNames[selectedOccupation] ||
+              `Occupation ${selectedOccupation}`;
+        valueText = `College Graduates: ${val.toLocaleString()}`;
+      }
+
+      tooltip
+        .style("visibility", "visible")
+        .html(`
           <strong>${stateName}</strong><br/>
           ${majorText}<br/>
           ${occupationText}<br/>
-          College Graduates: ${val.toLocaleString()}
+          ${valueText}
         `);
     })
     .on("mousemove", function (event) {
       tooltip
-        .style("top", event.pageY - 10 + "px")
-        .style("left", event.pageX + 10 + "px");
+        .style("top", `${event.pageY - 10}px`)
+        .style("left", `${event.pageX + 10}px`);
     })
     .on("mouseout", function () {
-      // Remove highlight (unless it's the clicked state)
       const isClicked = d3.select(this).classed("clicked");
       if (!isClicked) {
-        d3.select(this).attr("stroke", "#333").attr("stroke-width", 0.5);
+        d3.select(this)
+          .attr("stroke", "#333")
+          .attr("stroke-width", 0.5);
       }
-
-      // Hide tooltip
       tooltip.style("visibility", "hidden");
     })
+
+    // -----------------------------
+    // CLICK
+    // -----------------------------
     .on("click", function (event, d) {
       const fips = d.id.toString().padStart(2, "0");
       const stateName = stateNames[fips] || "Unknown";
-      currentSelectedState = fips; // store clicked state
 
-      // Add this logic:
-      if (
-        compareMode &&
-        currentSelectedOccupation &&
-        currentSelectedOccupation2 &&
-        currentSelectedOccupation !== "all" &&
-        currentSelectedOccupation2 !== "all"
-      ) {
-       updateCompareCharts(currentSelectedMajor, currentSelectedOccupation, currentSelectedOccupation2);
+      currentSelectedState = fips;
+
+      if (inCompare) {
+        updateCompareCharts(
+          currentSelectedMajor,
+          currentSelectedOccupation,
+          currentSelectedOccupation2
+        );
       } else {
-        updateDetailPanels(fips, stateName, currentSelectedMajor, currentSelectedOccupation);
+        updateDetailPanels(
+          fips,
+          stateName,
+          currentSelectedMajor,
+          currentSelectedOccupation
+        );
       }
 
-      // Remove previous click styling
-      svg.selectAll("path").classed("clicked", false);
-      svg.selectAll("path").attr("stroke", "#333").attr("stroke-width", 0.5);
+      svg.selectAll("path")
+        .classed("clicked", false)
+        .attr("stroke", "#333")
+        .attr("stroke-width", 0.5)
+        .style("opacity", 0.3);
 
-      // Add click styling to this state
       d3.select(this)
         .classed("clicked", true)
         .attr("stroke", "#ff6b6b")
-        .attr("stroke-width", 3);
+        .attr("stroke-width", 3)
+        .style("opacity", 1);
     });
+
+  // -----------------------------
+  // LEGEND
+  // -----------------------------
+  drawLegend(colorScale, inCompare);
 }
+
+
+
+
 
 function updateDetailPanels(
   stateFips,
@@ -432,7 +643,7 @@ function updateDetailPanels(
   // Update bottom chart based on whether occupation is selected
   if (selectedOccupation === "all") {
     // Show occupation bar chart when no specific occupation is selected
-    updateOccupationChart(stateData, stateName, majorText);
+    updateOccupationChart(stateData, stateName, majorText, "All Occupations");
   } else {
     // Show hours worked chart when a specific occupation is selected
     updateHoursChart(stateData, stateName, majorText, occupationText);
@@ -599,9 +810,9 @@ function updateOccupationChart(data, stateName, majorText) {
     .text(`${majorText} in ${stateName}`);
 
   // Create bar chart
-  const chartWidth = 450;
-  const chartHeight = 450;
-  const margin = { top: 20, right: 20, bottom: 200, left: 60 };
+  const chartWidth = 400;
+  const chartHeight = 400;
+  const margin = { top: 20, right: 20, bottom: 100, left: 60 };
 
   const svg = container
     .append("svg")
@@ -661,7 +872,7 @@ function updateOccupationChart(data, stateName, majorText) {
         .style("left", event.pageX + 10 + "px");
     })
     .on("mouseout", function () {
-      d3.select(this).attr("fill", "steelblue");
+      d3.select(this).attr("fill", "sblueteel");
       tooltip.style("visibility", "hidden");
     })
 
@@ -695,8 +906,8 @@ function updateOccupationChart(data, stateName, majorText) {
   svg
     .append("text")
     .attr("transform", "rotate(-90)")
-    .attr("x", -(chartHeight / 2))
-    .attr("y", 15)
+    .attr("x", (-(chartHeight / 2))+100)
+    .attr("y", 10)
     .attr("text-anchor", "middle")
     .style("font-size", "12px")
     .text("Number of Graduates");
@@ -1135,8 +1346,10 @@ function updateCompareSalaryChart(dataA, dataB, stateName, majorText, occA, occB
     .attr("y", d => y(d.length))
     .attr("width", groupBarWidth)
     .attr("height", d => y(0) - y(d.length))
-    .attr("fill", "#228be6")
+    .attr("fill", d3.rgb("#2ca25f"))//Green
     .attr("opacity", 0.8);
+
+    d3.rgb("#f16913")
 
   // Bars for Occupation B
   svg.selectAll(".barB")
@@ -1148,7 +1361,7 @@ function updateCompareSalaryChart(dataA, dataB, stateName, majorText, occA, occB
     .attr("y", d => y(d.length))
     .attr("width", groupBarWidth)
     .attr("height", d => y(0) - y(d.length))
-    .attr("fill", "#fa5252")
+    .attr("fill", d3.rgb("#f16913")) //orange
     .attr("opacity", 0.8);
 
   // SVG legend (top right)
@@ -1162,7 +1375,7 @@ function updateCompareSalaryChart(dataA, dataB, stateName, majorText, occA, occB
     .attr("y", 0)
     .attr("width", 16)
     .attr("height", 16)
-    .attr("fill", "#228be6");
+    .attr("fill", d3.rgb("#2ca25f"));
   legend.append("text")
     .attr("x", -40)
     .attr("y", 13)
@@ -1176,7 +1389,7 @@ function updateCompareSalaryChart(dataA, dataB, stateName, majorText, occA, occB
     .attr("y", 22)
     .attr("width", 16)
     .attr("height", 16)
-    .attr("fill", "#fa5252");
+    .attr("fill", d3.rgb("#f16913"));
   legend.append("text")
     .attr("x", -40)
     .attr("y", 13 + 22)
@@ -1263,22 +1476,22 @@ function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occ
 
   // Violin A
   svg.append("g")
-    .attr("transform", `translate(${centerA},0)`)
+    .attr("transform", `translate(${centerA -30},30)`)
     .append("path")
     .datum(densityA)
     .attr("d", area)
-    .attr("fill", "#228be6")
+    .attr("fill", d3.rgb("#2ca25f"))
     .attr("opacity", 0.8)
     .attr("stroke", "#222")
     .attr("stroke-width", 1);
 
   // Violin B
   svg.append("g")
-    .attr("transform", `translate(${centerB},0)`)
+    .attr("transform", `translate(${centerB -30},30)`)
     .append("path")
     .datum(densityB)
     .attr("d", area)
-    .attr("fill", "#fa5252")
+    .attr("fill", d3.rgb("#f16913"))
     .attr("opacity", 0.8)
     .attr("stroke", "#222")
     .attr("stroke-width", 1);
@@ -1289,8 +1502,8 @@ function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occ
   svg.append("line")
     .attr("x1", centerA - maxViolinWidth)
     .attr("x2", centerA + maxViolinWidth)
-    .attr("y1", y(medianA))
-    .attr("y2", y(medianA))
+    .attr("y1", y(medianA)+30)
+    .attr("y2", y(medianA)+30)
     .attr("stroke", "blue")
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "4");
@@ -1298,30 +1511,30 @@ function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occ
   svg.append("line")
     .attr("x1", centerB - maxViolinWidth)
     .attr("x2", centerB + maxViolinWidth)
-    .attr("y1", y(medianB))
-    .attr("y2", y(medianB))
-    .attr("stroke", "red")
+    .attr("y1", y(medianB)+30)
+    .attr("y2", y(medianB)+30)
+    .attr("stroke", "blue")
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "4");
 
   svg.append("text")
     .attr("x", centerA)
-    .attr("y", y(medianA) - 5)
+    .attr("y", y(medianA) - 5+(30))
     .attr("text-anchor", "middle")
     .attr("fill", "blue")
     .style("font-size", "12px")
     .text(`Median: ${medianA ? medianA.toFixed(1) : "n/a"} hrs`);
   svg.append("text")
     .attr("x", centerB)
-    .attr("y", y(medianB) - 5)
+    .attr("y", y(medianB) - 5+(30))
     .attr("text-anchor", "middle")
-    .attr("fill", "red")
+    .attr("fill","blue")
     .style("font-size", "12px")
     .text(`Median: ${medianB ? medianB.toFixed(1) : "n/a"} hrs`);
 
   // Shared Y axis
   svg.append("g")
-    .attr("transform", `translate(${chartWidth / 2 + maxViolinWidth + 15},0)`)
+    .attr("transform", `translate(${chartWidth / 2 + maxViolinWidth + 15 +(50)},30)`)
     .call(d3.axisRight(y).ticks(10))
     .selectAll("text")
     .style("font-size", "10px");
@@ -1337,7 +1550,7 @@ function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occ
     .attr("y", 0)
     .attr("width", 16)
     .attr("height", 16)
-    .attr("fill", "#228be6");
+    .attr("fill", d3.rgb("#2ca25f"));
   legend.append("text")
     .attr("x", -40)
     .attr("y", 13)
@@ -1351,7 +1564,7 @@ function updateCompareViolinCharts(dataA, dataB, stateName, majorText, occA, occ
     .attr("y", 22)
     .attr("width", 16)
     .attr("height", 16)
-    .attr("fill", "#fa5252");
+    .attr("fill", d3.rgb("#f16913"));
   legend.append("text")
     .attr("x", -40)
     .attr("y", 13 + 22)
